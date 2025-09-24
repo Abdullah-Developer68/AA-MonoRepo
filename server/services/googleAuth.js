@@ -157,11 +157,11 @@ const LogoutFromGoogle = async (req, res) => {
     // Method 3: Set empty cookie as final fallback
     res.cookie("token", "", clearCookieOptions);
 
-    // Get client URL for redirect
+    // Get client URL for redirect with logout parameter
     const clientUrl =
       process.env.NODE_ENV === "production"
-        ? "https://anime-alley.vercel.app" // Use actual domain instead of CLIENT_URL
-        : "http://localhost:5173";
+        ? "https://anime-alley.vercel.app?googleLogout=true" // Add parameter to signal logout
+        : "http://localhost:5173?googleLogout=true";
 
     // Redirect to client after clearing JWT cookie
     res.redirect(clientUrl);

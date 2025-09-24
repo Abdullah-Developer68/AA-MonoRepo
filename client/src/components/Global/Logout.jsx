@@ -10,9 +10,9 @@ const Logout = () => {
   const handleLogout = async () => {
     try {
       if (user.googleId) {
-        // Google OAuth logout - this redirects to server, which will handle clearing
+        // Google OAuth logout - redirects to server, then back to home with ?googleLogout=true
+        // App.jsx will detect the parameter and clear localStorage + user state
         api.googleLogout();
-        // localStorage.clear() will happen after redirect on the server side
       } else {
         // Regular auth logout - wait for server to clear cookies first
         console.log("Initiating logout - keeping token for server request");

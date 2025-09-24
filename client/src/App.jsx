@@ -12,11 +12,34 @@ import Dashboard from "./pages/Dashboard";
 import Success from "./pages/Success";
 import GoogleAuthSuccess from "./components/GoogleAuthSuccess";
 import RecruiterByPass from "./pages/RecruiterByPass";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { toast } from "react-toastify";
+import useAuth from "./Hooks/UseAuth";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 
 function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
+
+  // Handle Google logout parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const googleLogout = urlParams.get("googleLogout");
+
+    if (googleLogout === "true") {
+      // Clear localStorage and user state
+      localStorage.clear();
+      setUser(null);
+      toast.success("Successfully logged out from Google");
+
+      // Remove the parameter from URL without triggering a reload
+      navigate("/", { replace: true });
+    }
+  }, [location.search, navigate, setUser]);
+
   return (
     <>
       <div className="min-h-screen flex flex-col">
