@@ -264,6 +264,8 @@ const verifyToken = async (req, res) => {
   try {
     // Use utility function to extract token from Authorization header or cookies
     const token = extractToken(req);
+    console.log("token was no deledted");
+    console.log(token);
     if (!token) {
       return res
         .status(401)
