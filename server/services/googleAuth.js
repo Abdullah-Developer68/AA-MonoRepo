@@ -92,7 +92,8 @@ const handleGoogleCallback = (req, res, next) => {
           profilePic: user.profilePic,
           role: user.role,
         },
-        process.env.JWT_KEY
+        process.env.JWT_KEY,
+        { expiresIn: "24h" } // Add token expiration to match auth service
       );
 
       // Set JWT token in cookie as fallback (same as local auth)
@@ -123,17 +124,23 @@ const LogoutFromGoogle = async (req, res) => {
   try {
     const isProduction = process.env.NODE_ENV === "production";
 
-    // Pure JWT logout with multiple clearing approaches
+    // Create proper clear cookie options WITHOUT maxAge from getCookieOptions
     const clearCookieOptions = {
-      ...getCookieOptions(),
-      expires: new Date(0),
-      maxAge: 0,
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      path: "/",
+      expires: new Date(0), // Set expiration to past date
+      maxAge: 0, // Set maxAge to 0
+      ...(isProduction && {
+        domain: ".vercel.app",
+      }),
     };
 
     console.log("Clearing cookie with options:", clearCookieOptions);
 
-    // Method 1: Clear with original options
-    res.clearCookie("token", getCookieOptions());
+    // Method 1: Clear with clearCookie using proper options
+    res.clearCookie("token", clearCookieOptions);
 
     // Method 2: Clear without domain (for fallback)
     if (isProduction) {
@@ -142,6 +149,8 @@ const LogoutFromGoogle = async (req, res) => {
         secure: true,
         sameSite: "lax",
         path: "/",
+        expires: new Date(0),
+        maxAge: 0,
       });
     }
 
