@@ -1,0 +1,27 @@
+{
+  "name": "anime-alley",
+  "version": "1.0.0",
+  "description": "AnimeAlley - Full-stack monorepo for Vercel deployment",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "start": "cd server && npm start",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "clean": "rimraf client/dist server/dist node_modules client/node_modules server/node_modules"
+  },
+  "keywords": ["anime", "ecommerce", "react", "express", "mongodb"],
+  "author": "Abdullah-Developer68",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
