@@ -19,19 +19,28 @@ const extractToken = (req) => {
 };
 
 // Centralized cookie options - same as auth service, updated for same-domain
-const getCookieOptions = () => {
+const getCookieOptions = (req) => {
   const isProduction = process.env.NODE_ENV === "production";
 
-  return {
+  const options = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: "lax", // Changed to "lax" since we're on same domain now
+    sameSite: "lax",
     path: "/",
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    ...(isProduction && {
-      domain: ".vercel.app", // Explicit domain for Vercel production
-    }),
+    maxAge: 24 * 60 * 60 * 1000,
   };
+
+  if (isProduction) {
+    const configuredDomain = process.env.COOKIE_DOMAIN;
+
+    if (configuredDomain) {
+      options.domain = configuredDomain;
+    } else if (req?.hostname) {
+      options.domain = req.hostname;
+    }
+  }
+
+  return options;
 };
 
 /**
@@ -97,7 +106,7 @@ const handleGoogleCallback = (req, res, next) => {
       );
 
       // Set JWT token in cookie as fallback (same as local auth)
-      res.cookie("token", token, getCookieOptions());
+      res.cookie("token", token, getCookieOptions(req));
 
       // Redirect to client with token as query parameter for localStorage storage
       return res.redirect(
@@ -122,40 +131,22 @@ const handleGoogleCallback = (req, res, next) => {
  */
 const LogoutFromGoogle = async (req, res) => {
   try {
-    const isProduction = process.env.NODE_ENV === "production";
-
-    // Create proper clear cookie options WITHOUT maxAge from getCookieOptions
+    const baseCookieOptions = getCookieOptions(req);
     const clearCookieOptions = {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      path: "/",
-      expires: new Date(0), // Set expiration to past date
-      maxAge: 0, // Set maxAge to 0
-      ...(isProduction && {
-        domain: ".vercel.app",
-      }),
+      ...baseCookieOptions,
+      expires: new Date(0),
+      maxAge: 0,
     };
 
-    console.log("Clearing cookie with options:", clearCookieOptions);
-
-    // Method 1: Clear with clearCookie using proper options
     res.clearCookie("token", clearCookieOptions);
-
-    // Method 2: Clear without domain (for fallback)
-    if (isProduction) {
-      res.clearCookie("token", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: "/",
-        expires: new Date(0),
-        maxAge: 0,
-      });
-    }
-
-    // Method 3: Set empty cookie as final fallback
     res.cookie("token", "", clearCookieOptions);
+
+    if (clearCookieOptions.domain) {
+      const hostOnlyOptions = { ...clearCookieOptions };
+      delete hostOnlyOptions.domain;
+      res.clearCookie("token", hostOnlyOptions);
+      res.cookie("token", "", hostOnlyOptions);
+    }
 
     // Get client URL for redirect with logout parameter
     const clientUrl =

@@ -22,19 +22,28 @@ const extractToken = (req) => {
 };
 
 // Centralized cookie configuration for same-domain deployment
-const getCookieOptions = () => {
+const getCookieOptions = (req) => {
   const isProduction = process.env.NODE_ENV === "production";
 
-  return {
+  const options = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: "lax", // Changed to "lax" since we're on same domain now
+    sameSite: "lax", // Same-domain so lax is sufficient
     path: "/",
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    ...(isProduction && {
-      domain: ".vercel.app", // Explicit domain for Vercel production
-    }),
   };
+
+  if (isProduction) {
+    const configuredDomain = process.env.COOKIE_DOMAIN;
+
+    if (configuredDomain) {
+      options.domain = configuredDomain;
+    } else if (req?.hostname) {
+      options.domain = req.hostname;
+    }
+  }
+
+  return options;
 };
 
 const makNSenOTP = async (req, res) => {
@@ -112,7 +121,7 @@ const signUp = async (req, res) => {
     );
 
     // Set cookie as fallback (for compatibility)
-    res.cookie("token", token, getCookieOptions());
+    res.cookie("token", token, getCookieOptions(req));
 
     // Send token in response body for localStorage storage
     res.status(201).json({
@@ -194,7 +203,7 @@ const login = async (req, res) => {
     );
 
     // Set cookie as fallback (for compatibility)
-    res.cookie("token", token, getCookieOptions());
+    res.cookie("token", token, getCookieOptions(req));
 
     const user = {
       id: userExist._id,
@@ -220,40 +229,24 @@ const login = async (req, res) => {
 const logout = (req, res) => {
   dbConnect();
   try {
-    const isProduction = process.env.NODE_ENV === "production";
-
-    // Create proper clear cookie options WITHOUT maxAge from getCookieOptions
+    const baseCookieOptions = getCookieOptions(req);
     const clearCookieOptions = {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      path: "/",
-      expires: new Date(0), // Set expiration to past date
-      maxAge: 0, // Set maxAge to 0
-      ...(isProduction && {
-        domain: ".vercel.app",
-      }),
+      ...baseCookieOptions,
+      expires: new Date(0),
+      maxAge: 0,
     };
 
-    // Method 1: Clear with clearCookie using proper options
+    // Clear using the same options used during login
     res.clearCookie("token", clearCookieOptions);
-
-    // Method 2: Clear without domain (for fallback)
-    if (isProduction) {
-      res.clearCookie("token", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: "/",
-        expires: new Date(0),
-        maxAge: 0,
-      });
-    }
-
-    // Method 3: Set empty cookie as final fallback
     res.cookie("token", "", clearCookieOptions);
 
-    console.log("Cookie cleared with options:", clearCookieOptions);
+    // Also attempt host-only clearing to cover any domain mismatches
+    if (clearCookieOptions.domain) {
+      const hostOnlyOptions = { ...clearCookieOptions };
+      delete hostOnlyOptions.domain;
+      res.clearCookie("token", hostOnlyOptions);
+      res.cookie("token", "", hostOnlyOptions);
+    }
 
     res.status(200).json({
       success: true,
