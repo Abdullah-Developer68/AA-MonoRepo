@@ -4,7 +4,10 @@ const dotenv = require("dotenv");
 dotenv.config();
 const dbConnect = require("../config/dbConnect.js");
 
-const clientUrl = process.env.CLIENT_URL;
+const resolvedClientUrl =
+  process.env.SERVER_URL ||
+  process.env.CLIENT_URL ||
+  "https://aa-mono-repo.vercel.app";
 
 // Utility function to extract token from Authorization header or cookies
 const extractToken = (req) => {
@@ -30,18 +33,18 @@ const getCookieOptions = (req) => {
     maxAge: 24 * 60 * 60 * 1000,
   };
 
-    if (isProduction) {
-      const configuredDomain = process.env.COOKIE_DOMAIN;
-      const requestHost =
-        req?.hostname ||
-        req?.headers?.host?.split(":")[0] ||
-        req?.get?.("host")?.split(":")[0];
+  if (isProduction) {
+    const configuredDomain = process.env.COOKIE_DOMAIN;
+    const requestHost =
+      req?.hostname ||
+      req?.headers?.host?.split(":")[0] ||
+      (typeof req.get === "function" && req.get("host")?.split(":")[0]);
 
-      if (configuredDomain) {
-        options.domain = configuredDomain;
-      } else if (requestHost) {
-        options.domain = requestHost;
-      }
+    if (configuredDomain) {
+      options.domain = configuredDomain;
+    } else if (requestHost) {
+      options.domain = requestHost;
+    }
   }
 
   return options;
@@ -80,7 +83,7 @@ const handleGoogleCallback = (req, res, next) => {
   dbConnect();
   const clientUrl =
     process.env.NODE_ENV === "production"
-      ? process.env.SERVER_URL || "https://aa-mono-repo.vercel.app"
+      ? resolvedClientUrl
       : "http://localhost:5173";
 
   // Use custom callback to avoid session requirement
@@ -155,7 +158,7 @@ const LogoutFromGoogle = async (req, res) => {
     // Get client URL for redirect with logout parameter
     const clientUrl =
       process.env.NODE_ENV === "production"
-        ? `${process.env.SERVER_URL || "https://aa-mono-repo.vercel.app"}?googleLogout=true`
+        ? `${resolvedClientUrl}?googleLogout=true`
         : "http://localhost:5173?googleLogout=true";
 
     // Redirect to client after clearing JWT cookie
