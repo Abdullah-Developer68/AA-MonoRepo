@@ -30,14 +30,18 @@ const getCookieOptions = (req) => {
     maxAge: 24 * 60 * 60 * 1000,
   };
 
-  if (isProduction) {
-    const configuredDomain = process.env.COOKIE_DOMAIN;
+    if (isProduction) {
+      const configuredDomain = process.env.COOKIE_DOMAIN;
+      const requestHost =
+        req?.hostname ||
+        req?.headers?.host?.split(":")[0] ||
+        req?.get?.("host")?.split(":")[0];
 
-    if (configuredDomain) {
-      options.domain = configuredDomain;
-    } else if (req?.hostname) {
-      options.domain = req.hostname;
-    }
+      if (configuredDomain) {
+        options.domain = configuredDomain;
+      } else if (requestHost) {
+        options.domain = requestHost;
+      }
   }
 
   return options;
@@ -76,7 +80,7 @@ const handleGoogleCallback = (req, res, next) => {
   dbConnect();
   const clientUrl =
     process.env.NODE_ENV === "production"
-      ? "https://anime-alley.vercel.app" // Use actual domain for consistency
+      ? process.env.SERVER_URL || "https://aa-mono-repo.vercel.app"
       : "http://localhost:5173";
 
   // Use custom callback to avoid session requirement
@@ -151,7 +155,7 @@ const LogoutFromGoogle = async (req, res) => {
     // Get client URL for redirect with logout parameter
     const clientUrl =
       process.env.NODE_ENV === "production"
-        ? "https://anime-alley.vercel.app?googleLogout=true" // Add parameter to signal logout
+        ? `${process.env.SERVER_URL || "https://aa-mono-repo.vercel.app"}?googleLogout=true`
         : "http://localhost:5173?googleLogout=true";
 
     // Redirect to client after clearing JWT cookie

@@ -35,11 +35,15 @@ const getCookieOptions = (req) => {
 
   if (isProduction) {
     const configuredDomain = process.env.COOKIE_DOMAIN;
+    const requestHost =
+      req?.hostname ||
+      req?.headers?.host?.split(":")[0] ||
+      req?.get?.("host")?.split(":")[0];
 
     if (configuredDomain) {
       options.domain = configuredDomain;
-    } else if (req?.hostname) {
-      options.domain = req.hostname;
+    } else if (requestHost) {
+      options.domain = requestHost;
     }
   }
 
