@@ -28,13 +28,7 @@
       "dest": "/client/$1"
     }
   ],
-  "functions": {
-    "server/index.js": {
-      "maxDuration": 30
-    }
-  },
   "env": {
     "NODE_ENV": "production"
-  },
-  "outputDirectory": "client/dist"
+  }
 }
