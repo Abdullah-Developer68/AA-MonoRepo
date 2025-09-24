@@ -28,6 +28,9 @@ const getCookieOptions = () => {
     sameSite: "lax", // Changed to "lax" since we're on same domain now
     path: "/",
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    ...(isProduction && {
+      domain: ".vercel.app", // Explicit domain for Vercel production
+    }),
   };
 };
 
@@ -118,6 +121,8 @@ const handleGoogleCallback = (req, res, next) => {
  */
 const LogoutFromGoogle = async (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === "production";
+
     // Pure JWT logout with multiple clearing approaches
     const clearCookieOptions = {
       ...getCookieOptions(),
@@ -127,10 +132,20 @@ const LogoutFromGoogle = async (req, res) => {
 
     console.log("Clearing cookie with options:", clearCookieOptions);
 
-    // Clear cookie with original options
+    // Method 1: Clear with original options
     res.clearCookie("token", getCookieOptions());
 
-    // Also set empty cookie as fallback
+    // Method 2: Clear without domain (for fallback)
+    if (isProduction) {
+      res.clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+      });
+    }
+
+    // Method 3: Set empty cookie as final fallback
     res.cookie("token", "", clearCookieOptions);
 
     // Get client URL for redirect

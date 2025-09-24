@@ -31,6 +31,9 @@ const getCookieOptions = () => {
     sameSite: "lax", // Changed to "lax" since we're on same domain now
     path: "/",
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    ...(isProduction && {
+      domain: ".vercel.app", // Explicit domain for Vercel production
+    }),
   };
 };
 
@@ -215,6 +218,8 @@ const login = async (req, res) => {
 const logout = (req, res) => {
   dbConnect();
   try {
+    const isProduction = process.env.NODE_ENV === "production";
+
     // Clear JWT cookie with multiple approaches for better compatibility
     const clearCookieOptions = {
       ...getCookieOptions(),
@@ -222,11 +227,23 @@ const logout = (req, res) => {
       maxAge: 0,
     };
 
-    // Clear cookie with original options
+    // Method 1: Clear with original options
     res.clearCookie("token", getCookieOptions());
 
-    // Also set empty cookie as fallback
+    // Method 2: Clear without domain (for fallback)
+    if (isProduction) {
+      res.clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+      });
+    }
+
+    // Method 3: Set empty cookie as final fallback
     res.cookie("token", "", clearCookieOptions);
+
+    console.log("Cookie cleared with options:", clearCookieOptions);
 
     res.status(200).json({
       success: true,
