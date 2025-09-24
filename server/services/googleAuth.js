@@ -64,7 +64,7 @@ const handleGoogleCallback = (req, res, next) => {
   dbConnect();
   const clientUrl =
     process.env.NODE_ENV === "production"
-      ? process.env.CLIENT_URL
+      ? "https://anime-alley.vercel.app" // Use actual domain for consistency
       : "http://localhost:5173";
 
   // Use custom callback to avoid session requirement
@@ -118,18 +118,29 @@ const handleGoogleCallback = (req, res, next) => {
  */
 const LogoutFromGoogle = async (req, res) => {
   try {
-    // Pure JWT logout - same as main logout function
+    // Pure JWT logout with multiple clearing approaches
     const clearCookieOptions = {
       ...getCookieOptions(),
       expires: new Date(0),
       maxAge: 0,
     };
+
     console.log("Clearing cookie with options:", clearCookieOptions);
-    // Clear the JWT cookie
+
+    // Clear cookie with original options
+    res.clearCookie("token", getCookieOptions());
+
+    // Also set empty cookie as fallback
     res.cookie("token", "", clearCookieOptions);
 
+    // Get client URL for redirect
+    const clientUrl =
+      process.env.NODE_ENV === "production"
+        ? "https://anime-alley.vercel.app" // Use actual domain instead of CLIENT_URL
+        : "http://localhost:5173";
+
     // Redirect to client after clearing JWT cookie
-    res.redirect(process.env.CLIENT_URL || clientUrl);
+    res.redirect(clientUrl);
   } catch (error) {
     console.error("Google logout error:", error);
     res.status(500).json({ success: false, message: "Logout failed" });
