@@ -260,11 +260,12 @@ const logout = (req, res) => {
 
 //  helps to stay logged in even after refreshing the page
 const verifyToken = async (req, res) => {
+  console.log("Verifying token...");
   dbConnect();
   try {
     // Use utility function to extract token from Authorization header or cookies
     const token = extractToken(req);
-    console.log("token was no deledted");
+    console.log("token was not deleted");
     console.log(token);
     if (!token) {
       return res
